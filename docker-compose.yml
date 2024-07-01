@@ -19,12 +19,13 @@ services:
     container_name: backend
     environment:
       - PORT=${APP_PORT}
+      - DATABASE_URL=${DATABASE_URL}
     ports:
       - '3000:3000'
     depends_on:
       - postgres
     volumes:
-      - ./backend/src:/app/src
+      - ./backend:/app/src
     networks:
       - default
 networks:

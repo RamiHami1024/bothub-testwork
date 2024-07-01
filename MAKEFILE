@@ -1,0 +1,4 @@
+generate:
+	docker exec -it backend npx prisma generate
+migrate:
+	docker exec -it backend npx prisma migrate
