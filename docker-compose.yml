@@ -1,3 +1,33 @@
-version: '1'
 services:
-  build: ./backend
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    container_name: postgres
+    volumes:
+      - psql_volume:/var/lib/postgresql/data
+    expose:
+      - 5432
+    networks:
+      - default
+  backend:
+    build: ./backend
+    command: nest start --watch
+    container_name: backend
+    environment:
+      - PORT=${APP_PORT}
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - default
+networks:
+  default:
+volumes:
+  psql_volume:
