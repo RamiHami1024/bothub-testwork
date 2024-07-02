@@ -14,8 +14,15 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
   name     String?
-  password String  @db.Char(60)
+  password String   @db.Char(60)
+  roles    Int 
+}
+
+model Book {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  price    String
 }

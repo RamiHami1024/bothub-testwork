@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UserService {
-    constructor(private prisma: PrismaService) {}
+  static readonly USER = 1;
+  static readonly ADMIN = 2;
+  static readonly MODERATOR = 4;
+  static readonly SUPER_ADMIN = 8;
+
+	constructor(private prisma: PrismaService) {}
 
   async user(
     userWhereUniqueInput: Prisma.UserWhereUniqueInput,
@@ -14,43 +19,41 @@ export class UserService {
     });
   }
 
-  async users(params: {
-    skip?: number;
-    take?: number;
-    cursor?: Prisma.UserWhereUniqueInput;
-    where?: Prisma.UserWhereInput;
-    orderBy?: Prisma.UserOrderByWithRelationInput;
-  }): Promise<User[]> {
-    const { skip, take, cursor, where, orderBy } = params;
-    return this.prisma.user.findMany({
-      skip,
-      take,
-      cursor,
-      where,
-      orderBy,
-    });
-  }
-
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
     return this.prisma.user.create({
       data,
     });
   }
+  
+  //
+  // async updateUserRoles(userId: number, roles: number): Promise<User> {
+  //   return this.prisma.user.update({
+  //     where: { id: userId },
+  //     data: { 
+  //       roles
+  //     },
+  //   });
+  // }
 
-  async updateUser(params: {
-    where: Prisma.UserWhereUniqueInput;
-    data: Prisma.UserUpdateInput;
-  }): Promise<User> {
-    const { where, data } = params;
-    return this.prisma.user.update({
-      data,
-      where,
-    });
+  // async getUserRoles(userId: number): Promise<number> {
+  //   const user = await this.prisma.user.findUnique({
+  //     where: { id: userId },
+  //     select: { roles: true },
+  //   });
+  //   return user.roles;
+  // }
+  //
+  
+  hasRole(userRoles: number, role: number): boolean {
+    return (userRoles & role) === role;
   }
 
-  async deleteUser(where: Prisma.UserWhereUniqueInput): Promise<User> {
-    return this.prisma.user.delete({
-      where,
-    });
+  getRoles(userRoles: number): string[] {
+    const roles = [];
+    if (this.hasRole(userRoles, UserService.USER)) roles.push('USER');
+    if (this.hasRole(userRoles, UserService.ADMIN)) roles.push('ADMIN');
+    if (this.hasRole(userRoles, UserService.MODERATOR)) roles.push('MODERATOR');
+    if (this.hasRole(userRoles, UserService.SUPER_ADMIN)) roles.push('SUPER_ADMIN');
+    return roles;
   }
 }
