@@ -6,6 +6,8 @@ import {
   Param,
   Put,
   UseGuards,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../common/guards/auth.guard';
@@ -44,11 +46,6 @@ export class UserController {
   async login(@Body() body: { username: string; password: string }) {
     return this.authService.login(body.username, body.password);
   }
-  //
-  @Get('test')
-  async test() {
-    return this.usersService.hasRole(10, 1);
-  }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Get(':id')
@@ -65,5 +62,14 @@ export class UserController {
     @Body() body: { role: number; add: boolean },
   ): Promise<SafetyUserData> {
     return this.usersService.updateRole(id, body.role, body.add);
+  }
+
+  @Get('confirm')
+  async confirmEmail(@Query('token') token: string) {
+    if (!token) {
+      throw new BadRequestException('Token is required');
+    }
+
+    return this.usersService.confirmEmail(token);
   }
 }

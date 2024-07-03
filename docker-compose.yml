@@ -20,6 +20,7 @@ services:
       - PORT=${APP_PORT}
       - DATABASE_URL=${DATABASE_URL}
       - JWT_KEY=${JWT_KEY}
+      - SERVER_URL=${SERVER_URL}
     ports:
       - "3000:3000"
     depends_on:

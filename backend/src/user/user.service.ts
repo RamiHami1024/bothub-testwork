@@ -1,11 +1,20 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { User } from '@prisma/client';
 import { SafetyUserData } from 'src/common/interfaces/user.interface';
+import { MailerService } from '@nestjs-modules/mailer';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailerService: MailerService,
+  ) {}
 
   async createUser(
     email: string,
@@ -13,6 +22,8 @@ export class UserService {
     roles: number,
     username: string,
   ): Promise<void> {
+    const confirmToken = uuidv4();
+
     try {
       await this.prisma.user.create({
         data: {
@@ -20,11 +31,47 @@ export class UserService {
           password,
           roles,
           username,
+          confirmToken,
         },
       });
+
+      await this.sendConfirmationEmail(email, confirmToken);
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
+  }
+
+  private async sendConfirmationEmail(email: string, token: string) {
+    const url = `http://localhost:3000/auth/confirm?token=${token}`;
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Email Confirmation',
+      template: './confirmation', // Пусть до шаблона
+      context: {
+        name: email,
+        url,
+      },
+    });
+  }
+
+  async confirmEmail(token: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { confirmToken: token },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        confirmToken: null,
+      },
+    });
+
+    return { message: 'Email confirmed successfully' };
   }
 
   async loginUser(username: string, password: string) {

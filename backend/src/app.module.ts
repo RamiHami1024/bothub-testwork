@@ -9,9 +9,10 @@ import { AuthService } from './auth/auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { StoreController } from './store/store.controller';
 import { StoreService } from './store/store.service';
+import { MailModule } from './mailer/mailer.module';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
+  imports: [ConfigModule.forRoot(), MailModule],
   controllers: [AppController, UserController, StoreController],
   providers: [
     AppService,
