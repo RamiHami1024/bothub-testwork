@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../common/services/prisma.service';
 import { User } from '@prisma/client';
 import { SafetyUserData } from 'src/common/interfaces/user.interface';
 
@@ -85,18 +85,6 @@ export class UserService {
     const updatedRoles = add ? user.roles | role : user.roles & ~role;
     return this.updateUserRoles(userId, updatedRoles);
   }
-
-  // async addRole(userId: number, role: number): Promise<SafetyUserData> {
-  //   const user = await this.getUserById(userId);
-  //   if (!user) throw new Error('User not found');
-  //   return this.updateUserRoles(userId, user.roles | role);
-  // }
-
-  // async removeRole(userId: number, role: number): Promise<SafetyUserData> {
-  //   const user = await this.getUserById(userId);
-  //   if (!user) throw new Error('User not found');
-  //   return this.updateUserRoles(userId, user.roles & ~role);
-  // }
 
   protected safetyUserData(user: User): SafetyUserData {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
