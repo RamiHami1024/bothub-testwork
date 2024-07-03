@@ -7,11 +7,19 @@ import { PrismaService } from './common/services/prisma.service';
 import { ConfigModule } from '@nestjs/config';
 import { AuthService } from './auth/auth.service';
 import { JwtService } from '@nestjs/jwt';
-import { StoreModule } from './store/store.module';
+import { StoreController } from './store/store.controller';
+import { StoreService } from './store/store.service';
 
 @Module({
-  imports: [ConfigModule.forRoot(), StoreModule],
-  controllers: [AppController, UserController],
-  providers: [AppService, UserService, PrismaService, JwtService, AuthService],
+  imports: [ConfigModule.forRoot()],
+  controllers: [AppController, UserController, StoreController],
+  providers: [
+    AppService,
+    UserService,
+    PrismaService,
+    JwtService,
+    AuthService,
+    StoreService,
+  ],
 })
 export class AppModule {}
