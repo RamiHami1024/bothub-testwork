@@ -1,13 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
+import { SafetyUserData } from 'src/common/interfaces/user.interface';
 
 @Injectable()
 export class UserService {
-  readonly ADMIN = 1; // 0b001
-  readonly USER = 2; // 0b010
-  readonly MODERATOR = 4; // 0b100
   constructor(private prisma: PrismaService) {}
 
   async createUser(
@@ -40,17 +37,21 @@ export class UserService {
     });
   }
 
-  async getUserById(id: number): Promise<User | null> {
-    return this.prisma.user.findUnique({
+  async getUserById(id: number): Promise<SafetyUserData | null> {
+    const user: User = await this.prisma.user.findUnique({
       where: { id },
     });
+
+    return this.safetyUserData(user);
   }
 
-  async updateUserRoles(id: number, roles: number): Promise<User> {
-    return this.prisma.user.update({
+  async updateUserRoles(id: number, roles: number): Promise<SafetyUserData> {
+    const updateUser = await this.prisma.user.update({
       where: { id },
       data: { roles },
     });
+
+    return this.safetyUserData(updateUser);
   }
 
   async deleteUser(id: number): Promise<User> {
@@ -59,21 +60,47 @@ export class UserService {
     });
   }
 
-  async hasRole(userId: number, role: number): Promise<boolean> {
-    const user = await this.getUserById(userId);
+  async hasRole(userData: number | string, role: number): Promise<boolean> {
+    let user: SafetyUserData;
+    if (typeof userData !== 'string') {
+      user = await this.getUserById(userData);
+    } else {
+      user = await this.getUserByName(userData);
+    }
+
     if (!user) return false;
     return (user.roles & role) === role;
   }
 
-  async addRole(userId: number, role: number): Promise<User> {
-    const user = await this.getUserById(userId);
+  async updateRole(
+    userId: number,
+    role: number,
+    add: boolean,
+  ): Promise<SafetyUserData> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
     if (!user) throw new Error('User not found');
-    return this.updateUserRoles(userId, user.roles | role);
+
+    const updatedRoles = add ? user.roles | role : user.roles & ~role;
+    return this.updateUserRoles(userId, updatedRoles);
   }
 
-  async removeRole(userId: number, role: number): Promise<User> {
-    const user = await this.getUserById(userId);
-    if (!user) throw new Error('User not found');
-    return this.updateUserRoles(userId, user.roles & ~role);
+  // async addRole(userId: number, role: number): Promise<SafetyUserData> {
+  //   const user = await this.getUserById(userId);
+  //   if (!user) throw new Error('User not found');
+  //   return this.updateUserRoles(userId, user.roles | role);
+  // }
+
+  // async removeRole(userId: number, role: number): Promise<SafetyUserData> {
+  //   const user = await this.getUserById(userId);
+  //   if (!user) throw new Error('User not found');
+  //   return this.updateUserRoles(userId, user.roles & ~role);
+  // }
+
+  protected safetyUserData(user: User): SafetyUserData {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safetyUserData } = user;
+    return safetyUserData;
   }
 }

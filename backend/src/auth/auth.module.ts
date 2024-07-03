@@ -9,7 +9,7 @@ import { UserService } from '../user/user.service';
     UserModule,
     JwtModule.register({
       global: true,
-      secret: `TOPSECRETKEY`,
+      secret: process.env.JWT_KEY,
       signOptions: { expiresIn: '60h' },
     }),
   ],

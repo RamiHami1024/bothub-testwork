@@ -1,7 +1,19 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
-// import { AuthGuard } from '../guards/auth.guard';
+import { AuthGuard } from '../common/guards/auth.guard';
 import { AuthService } from 'src/auth/auth.service';
+// import { User } from '@prisma/client';
+import { ParseIntPipe } from '../common/pipes/isNaN.pipe';
+import { SafetyUserData } from 'src/common/interfaces/user.interface';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @Controller('users')
 export class UserController {
@@ -32,47 +44,26 @@ export class UserController {
   async login(@Body() body: { username: string; password: string }) {
     return this.authService.login(body.username, body.password);
   }
+  //
+  @Get('test')
+  async test() {
+    return this.usersService.hasRole(10, 1);
+  }
 
-  // @Get(':id')
-  // async getUserById(@Param('id') id: number): Promise<User | null> {
-  //   return this.usersService.getUserById(Number(id));
-  // }
+  @UseGuards(AuthGuard, RolesGuard)
+  @Get(':id')
+  async getUserById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SafetyUserData | null> {
+    return this.usersService.getUserById(Number(id));
+  }
 
-  // @Patch(':id/roles')
-  // async updateUserRoles(
-  //   @Param('id') id: number,
-  //   @Body() body: { roles: number },
-  // ): Promise<User> {
-  //   return this.usersService.updateUserRoles(Number(id), body.roles);
-  // }
-
-  // @Delete(':id')
-  // async deleteUser(@Param('id') id: number): Promise<User> {
-  //   return this.usersService.deleteUser(Number(id));
-  // }
-
-  // // Endpoints for role management
-  // @Get(':id/roles/:role')
-  // async hasRole(
-  //   @Param('id') id: number,
-  //   @Param('role') role: number,
-  // ): Promise<boolean> {
-  //   return this.usersService.hasRole(Number(id), Number(role));
-  // }
-
-  // @Patch(':id/roles/add')
-  // async addRole(
-  //   @Param('id') id: number,
-  //   @Body() body: { role: number },
-  // ): Promise<User> {
-  //   return this.usersService.addRole(Number(id), body.role);
-  // }
-
-  // @Patch(':id/roles/remove')
-  // async removeRole(
-  //   @Param('id') id: number,
-  //   @Body() body: { role: number },
-  // ): Promise<User> {
-  //   return this.usersService.removeRole(Number(id), body.role);
-  // }
+  @UseGuards(AuthGuard)
+  @Put(':id/role')
+  async updateRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { role: number; add: boolean },
+  ): Promise<SafetyUserData> {
+    return this.usersService.updateRole(id, body.role, body.add);
+  }
 }
