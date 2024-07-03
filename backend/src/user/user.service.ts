@@ -1,59 +1,79 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { User } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
-  static readonly USER = 1;
-  static readonly ADMIN = 2;
-  static readonly MODERATOR = 4;
-  static readonly SUPER_ADMIN = 8;
+  readonly ADMIN = 1; // 0b001
+  readonly USER = 2; // 0b010
+  readonly MODERATOR = 4; // 0b100
+  constructor(private prisma: PrismaService) {}
 
-	constructor(private prisma: PrismaService) {}
+  async createUser(
+    email: string,
+    password: string,
+    roles: number,
+    username: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.user.create({
+        data: {
+          email,
+          password,
+          roles,
+          username,
+        },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
 
-  async user(
-    userWhereUniqueInput: Prisma.UserWhereUniqueInput,
-  ): Promise<User | null> {
+  async loginUser(username: string, password: string) {
+    return { username, password };
+  }
+
+  async getUserByName(username: string) {
+    return this.prisma.user.findUniqueOrThrow({
+      where: { username },
+    });
+  }
+
+  async getUserById(id: number): Promise<User | null> {
     return this.prisma.user.findUnique({
-      where: userWhereUniqueInput,
+      where: { id },
     });
   }
 
-  async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({
-      data,
+  async updateUserRoles(id: number, roles: number): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { roles },
     });
   }
-  
-  //
-  // async updateUserRoles(userId: number, roles: number): Promise<User> {
-  //   return this.prisma.user.update({
-  //     where: { id: userId },
-  //     data: { 
-  //       roles
-  //     },
-  //   });
-  // }
 
-  // async getUserRoles(userId: number): Promise<number> {
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { id: userId },
-  //     select: { roles: true },
-  //   });
-  //   return user.roles;
-  // }
-  //
-  
-  hasRole(userRoles: number, role: number): boolean {
-    return (userRoles & role) === role;
+  async deleteUser(id: number): Promise<User> {
+    return this.prisma.user.delete({
+      where: { id },
+    });
   }
 
-  getRoles(userRoles: number): string[] {
-    const roles = [];
-    if (this.hasRole(userRoles, UserService.USER)) roles.push('USER');
-    if (this.hasRole(userRoles, UserService.ADMIN)) roles.push('ADMIN');
-    if (this.hasRole(userRoles, UserService.MODERATOR)) roles.push('MODERATOR');
-    if (this.hasRole(userRoles, UserService.SUPER_ADMIN)) roles.push('SUPER_ADMIN');
-    return roles;
+  async hasRole(userId: number, role: number): Promise<boolean> {
+    const user = await this.getUserById(userId);
+    if (!user) return false;
+    return (user.roles & role) === role;
+  }
+
+  async addRole(userId: number, role: number): Promise<User> {
+    const user = await this.getUserById(userId);
+    if (!user) throw new Error('User not found');
+    return this.updateUserRoles(userId, user.roles | role);
+  }
+
+  async removeRole(userId: number, role: number): Promise<User> {
+    const user = await this.getUserById(userId);
+    if (!user) throw new Error('User not found');
+    return this.updateUserRoles(userId, user.roles & ~role);
   }
 }
